@@ -1,0 +1,45 @@
+/**
+ * Run this program with `--client` option, like so:
+ *
+ * `./bin/Interrupts --client`
+ *
+ * Then connect a client that can set the external pins on the emulated FlexPRET.
+ * Like so:
+ *
+ * `$FP_PATH/build/emulator/clients/interrupter`
+ *
+ * Then press <ENTER> to see interrupts get triggered.
+ */
+
+target C {
+    keepalive: true, // Do not exit when event queue is empty.
+    platform: "FlexPRET",
+    single-threaded: true
+}
+
+main reactor {
+    physical action a(0, 250 us, "drop"): int
+    
+    preamble {=
+        static instant_t timestamps[2];
+        void *action;
+        void ie_isr(void) {
+            timestamps[0] = lf_time_physical_elapsed();
+            lf_schedule(action, 0);
+        }
+    =}
+
+    reaction(startup) -> a {=
+        lf_print("Run: $FP_PATH/build/emulator/clients/interrupter to trigger interrupts");
+        lf_print("And remember the `--client` flag when running this program");
+        action = a;
+        register_isr(EXC_CAUSE_EXTERNAL_INT, ie_isr);
+        fp_interrupt_enable();
+    =}
+
+    reaction(a) {=
+        timestamps[1] = lf_time_physical_elapsed();
+        lf_print("Interrupt delay: %i", 
+            (uint32_t) (timestamps[1] - timestamps[0]));
+    =}
+}

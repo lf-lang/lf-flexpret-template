@@ -1,2 +1,3 @@
-# lf-flexpret-template
-A template repository for getting a workspace going for Lingua Franca running on FlexPRET.
+# Lingua Franca FlexPRET Template
+
+Follow the instructions available on the official [Lingua Franca webpage](https://www.lf-lang.org/docs/embedded/flexpret) for getting started.
