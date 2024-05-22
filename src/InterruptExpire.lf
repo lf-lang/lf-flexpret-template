@@ -5,7 +5,7 @@
  * This provides a *hard* upper bound on execution times for code sections.
  */
 
-target C {
+ target C {
     platform: "FlexPRET",
     timeout: 1 s
 }
@@ -14,6 +14,9 @@ main reactor {
     timer t(10 ms, 10 ms)
 
     preamble {=
+        #define MAX_COMPUTE_NELEMENTS (801)
+        uint64_t array[MAX_COMPUTE_NELEMENTS];
+
         void compute_fibs(uint64_t *arr, uint32_t n) {
             arr[0] = 0;
             arr[1] = 1;
@@ -25,7 +28,7 @@ main reactor {
 
         void interrupt_handler(void) {
             // Here we can implment an interrupt handler or just leave empty
-            lf_print("Hello world from interrupt handler");
+            //lf_print("Hello world from interrupt handler");
         }
     =}
 
@@ -38,16 +41,15 @@ main reactor {
         instant_t start = lf_time_physical_elapsed();
 
         bool within_deadline = false;
-        fp_int_on_expire(start + USEC(500), cleanup);
+        fp_int_on_expire(lf_time_logical() + USEC(500), cleanup);
         /**
-         * This code section is guarateed to take 500 us at maximum.
+         * This code section is guarateed to take 500 usec at maximum.
          */
         
         // We introduce some randomness by doing modulo here
-        uint32_t nelements = start % 800;
+        uint32_t nelements = start % MAX_COMPUTE_NELEMENTS;
         lf_print("Computing fib for %li elements", nelements);
         
-        uint64_t *array = malloc(sizeof(uint64_t) * nelements);
         compute_fibs(array, nelements);
 
         fp_int_on_expire_cancel();
@@ -57,13 +59,12 @@ cleanup:
         instant_t after = lf_time_physical_elapsed();
         
         if (within_deadline) {
-            lf_print("Ran code within deadline");
+            lf_print("Ran reaction within deadline");
         } else {
-            lf_print("Code was interrupted due to deadline violation");
+            lf_print("Reaction was interrupted due to deadline violation");
         }
 
-        free(array);
-        lf_print("Code section ran in %li ns",
+        lf_print("Reaction ran in %li ns",
             (uint32_t) (after - start));
     =}
 }

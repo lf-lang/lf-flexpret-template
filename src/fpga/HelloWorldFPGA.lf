@@ -3,29 +3,38 @@
  * Setting the `flash` option to true will automatically attempt to flash the
  * compiled program to the FPGA.
  *
- * TODO: Test on FPGA
  */
 
-target C {
+ target C {
     platform: {
         name: "FlexPRET",
         board: "fpga",
-        port: "/dev/ttyUSB0",
         flash: true
         // Not allowed to set baudrate for FlexPRET platform specifically
     },
-    timeout: 10 s
+    single-threaded: true
 }
 
 main reactor {
-    timer t(10 ms, 500 ms)
-
-    reaction(t) {=
-        // fp_print_string is a very low footprint function, as opposed to printf
-        fp_print_string("Hello world\n");
+    preamble {=
+        static void set_ledmask(const uint8_t byte)
+        {
+            gpo_write_0((byte >> 0) & 0b11);
+            gpo_write_1((byte >> 2) & 0b11);
+            gpo_write_2((byte >> 4) & 0b11);
+            gpo_write_3((byte >> 6) & 0b11);
+        }
     =}
 
-    reaction(shutdown) {=
-        fp_print_string("Terminating\n");
+    timer t(50 ms, 50 ms)
+    state x: int = 0
+
+    reaction(startup) {=
+        lf_print("Hello world!\n");
+    =}
+
+    reaction(t) {=
+        set_ledmask(self->x++);
+        lf_print("Time: %u", (unsigned int) rdtime());
     =}
 }

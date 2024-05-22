@@ -2,9 +2,12 @@
  * Test a simple timer.
  */
 
-target C {
-    platform: "FlexPRET",
-    //logging: debug,
+ target C {
+    platform: {
+        name: "FlexPRET",
+        board: "fpga",
+        flash: true
+    },
     single-threaded: true
 };
 
@@ -13,7 +16,7 @@ main reactor {
     state count: int
     reaction(t) {=
         self->count += 1;
-        lf_print("self->count: %i at time: %i", self->count, (int) lf_time_logical());
+        lf_print("self->count: %i at time: %u", self->count, (unsigned int) lf_time_logical());
         
         if (self->count >= 10) {
             lf_request_stop();
